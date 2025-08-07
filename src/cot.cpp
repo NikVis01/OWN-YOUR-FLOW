@@ -54,18 +54,18 @@ std::string CoT::stepThree(const std::string& prompt) {
 }
 
 
-std::string CoT::reActLoop(const std::string& user_query) {
+std::string CoT::reActLoop(const std::string& user_query, const std::string& initial_context) {
     Parser parser;
     Filler filler(user_query);
 
-    std::string context = "";
+    std::string context = initial_context;
     bool done = false;
     int step = 0;
     int maxSteps = 5;
 
     while (!done && step < maxSteps) {
-        // Load step 1
-        std::string promptTemplate = parser.getPrompt(1);
+        // Load step 3
+        std::string promptTemplate = parser.getPrompt(3);
 
         // Fill prompt with user query and context
         std::string prompt = fmt::format(promptTemplate, user_query, context);

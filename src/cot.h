@@ -20,5 +20,5 @@ public:
 
     void parseModelOutput(const std::string& output, std::string& thought, std::string& action);
 
-    std::string CoT::reActLoop(const std::string& user_query);
+    std::string CoT::reActLoop(const std::string& user_query, const std::string& initial_context);
 };
