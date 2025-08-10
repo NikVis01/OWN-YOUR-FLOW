@@ -23,38 +23,49 @@
 
 
 std::string agenticLoop(const std::string& query) {
-    // Parse all prompts
     Parser parser;
-    std::string step1_prompt = parser.getPrompt(1);
-    std::string step2_prompt = parser.getPrompt(2);
-    std::string step3_prompt = parser.getPrompt(3);
-
-    // Fill step 1 prompt with query
-    Filler filler(query);
-    std::string filled_step1 = filler.fill_step1(step1_prompt);
-
-    std::cout << "STEP 1 COMPLETE PROMPT: \n" << filled_step1 << std::endl;
-
-    // Get thought from CoT step 1
+    std::string stringContext;
     CoT cot;
-    std::string thought = cot.stepOne(filled_step1);
+    int retryLimit = 3;
+    int retryCount = 0;
 
-    std::cout << "THOUGHT: \n" << thought << std::endl;
 
-    // Fill step 2 prompt with query and thought
-    std::string filled_step2 = filler.fill_step2(step2_prompt, thought);
+    while (retryCount < retryLimit) {
+        // Parse all prompts
+        std::string step1_prompt = parser.getPrompt(1);
+        std::string step2_prompt = parser.getPrompt(2);
+        std::string step3_prompt = parser.getPrompt(3);
 
-    std::cout << "STEP 2 COMPLETE PROMPT: \n" << filled_step2 << std::endl;
+        // Fill step 1 prompt with query
+        Filler filler(query);
+        std::string filled_step1 = filler.fill_step1(step1_prompt);
+        std::cout << "STEP 1 COMPLETE PROMPT: \n" << filled_step1 << std::endl;
 
-    // Get final response from CoT step 2
-    std::string response = cot.stepTwo(filled_step2);
+        // Get thought from CoT step 1
+        std::string thought = cot.stepOne(filled_step1);
+        std::cout << "THOUGHT: \n" << thought << std::endl;
+        stringContext += "Thought: " + thought + "\n";
 
-    // Making sure we have a line
-    response = response + "\n";
+        // Fill step 2 prompt with query and thought
+        std::string filled_step2 = filler.fill_step2(step2_prompt, thought);
+        std::cout << "STEP 2 COMPLETE PROMPT: \n" << filled_step2 << std::endl;
 
-    std::cout << "RESPONSE: " << response << std::endl;
+        // Get final response from CoT step 2
+        std::string response = cot.stepTwo(filled_step2);
 
-    return cot.reActLoop(query, response);
+        // Making sure we have a line
+        response = response + "\n";
+        stringContext += "Action:" + response + "\n";
+
+        // Enter the reAct loop with context
+        std::string result = cot.reActLoop(query, stringContext);
+
+        if (result.find("Final Answer") != std::string::npos) {
+            return result;
+        }
+        retryCount++;
+    }
+    return "Agent failed to find final answer after multiple retries.\n";
 }
 
 
