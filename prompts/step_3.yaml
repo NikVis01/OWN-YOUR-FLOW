@@ -8,12 +8,11 @@ prompt: |
 
   Query: {}
 
+  Here is what you have reasoned so far:
+  {}
+
   Your task is to think step by step, take actions using tools if needed, and stop when you have the final answer.
 
-  Respond ONLY in this format (JSON):
-  {
-    "thought": "Describe your reasoning here",
-    "tool": "name-of-tool OR empty string if no tool",
-    "tool_input": "input to tool OR empty string if no tool",
-    "final_answer": "Only if you're ready to answer. Otherwise leave blank."
-  }
+  Respond ONLY in this format:
+  Thought: <your reasoning>
+  Action: <tool name or "Final Answer: <your answer>"
