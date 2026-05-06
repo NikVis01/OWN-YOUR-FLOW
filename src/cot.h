@@ -6,19 +6,26 @@ private:
     std::string model_path;
     double temperature;
 
+    // Shell out to llama-run and return raw model output
     std::string getResponse(const std::string& prompt);
 
+    // Safe two-slot template fill (avoids fmt::format crashing on model-generated braces)
+    static std::string fillTemplate(std::string tmpl,
+                                    const std::string& slot0,
+                                    const std::string& slot1);
+
 public:
-    CoT(const std::string& model_path = "./libs//llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_0.gguf", 
+    CoT(const std::string& model_path = "./libs/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_0.gguf",
         double temp = 0.9);
-    
-    std::string stepOne(const std::string& prompt);
 
-    std::string stepTwo(const std::string& prompt);
+    // Parse the first Thought:/Action: pair from a model response
+    void parseModelOutput(const std::string& output,
+                          std::string& thought,
+                          std::string& action);
 
-    std::string CoT::stepThree(const std::string& prompt);
-
-    void parseModelOutput(const std::string& output, std::string& thought, std::string& action);
-
-    std::string CoT::reActLoop(const std::string& user_query);
+    // Main ReAct loop — accumulates context across iterations and returns
+    // the text after "Final Answer:" or a timeout message
+    std::string reActLoop(const std::string& user_query,
+                          const std::string& initial_context = "",
+                          int max_steps = 5);
 };
