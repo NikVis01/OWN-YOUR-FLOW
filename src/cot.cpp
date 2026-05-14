@@ -13,6 +13,7 @@
 
 #include "cot.h"
 #include "parser.h"
+#include "tools/tool_dispatcher.h"
 
 CoT::CoT(const std::string& model_path, double temp)
     : model_path(model_path), temperature(temp) {}
@@ -61,7 +62,6 @@ std::string CoT::fillTemplate(std::string tmpl,
 }
 
 // Extracts the first Thought: and Action: lines from the raw model output.
-
 void CoT::parseModelOutput(const std::string& output,
                             std::string& thought,
                             std::string& action) {
@@ -73,7 +73,6 @@ void CoT::parseModelOutput(const std::string& output,
     while (std::getline(stream, line)) {
         if (!found_thought && line.rfind("Thought:", 0) == 0) {
             thought = line.substr(8);
-            // Trim single leading space if present
             if (!thought.empty() && thought.front() == ' ')
                 thought = thought.substr(1);
             found_thought = true;
@@ -89,8 +88,15 @@ void CoT::parseModelOutput(const std::string& output,
     }
 }
 
-// reActLoop    
-
+// reActLoop
+// Core CoT loop with tool dispatch support.
+// Each iteration:
+//   1. Builds prompt from template + accumulated context
+//   2. Calls the model
+//   3. Parses Thought/Action
+//   4a. Tool call  -> dispatch, inject Observation, loop
+//   4b. Final Answer -> strip prefix, return
+//   4c. Unknown action -> log and loop
 std::string CoT::reActLoop(const std::string& user_query,
                             const std::string& initial_context,
                             int max_steps) {
@@ -100,43 +106,45 @@ std::string CoT::reActLoop(const std::string& user_query,
     std::string context = initial_context;
 
     for (int step = 0; step < max_steps; ++step) {
-        std::cout << "\n── Step " << (step + 1) << "/" << max_steps << " ──────────────────────\n";
+        std::cout << "\n-- Step " << (step + 1) << "/" << max_steps << " ------\n";
 
-        // Build the full prompt for this iteration
         std::string prompt = fillTemplate(prompt_template, user_query, context);
         std::cout << "[PROMPT]\n" << prompt << "\n";
 
-        // Call the model
         std::string raw_output = getResponse(prompt);
         std::cout << "[RAW OUTPUT]\n" << raw_output << "\n";
 
-        // Extract the first Thought/Action pair
         std::string thought, action;
         parseModelOutput(raw_output, thought, action);
 
         if (thought.empty() && action.empty()) {
             std::cerr << "[WARN] Could not parse Thought/Action from model output.\n";
-            // Treat the whole raw output as the action to allow the loop to
-            // check for a Final Answer even when formatting is imperfect.
             action = raw_output;
         }
 
         std::cout << "[THOUGHT] " << thought << "\n";
         std::cout << "[ACTION]  " << action  << "\n";
 
-        // Accumulate into the rolling context
-        context += "Thought: " + thought + "\n";
-        context += "Action: "  + action  + "\n\n";
+        // Branch on action type
+        if (ToolDispatcher::isToolCall(action)) {
+            std::string observation = ToolDispatcher::dispatch(action);
+            std::cout << "[OBSERVATION] " << observation << "\n";
 
-        // Termination check — model produced a final answer
-        if (action.find("Final Answer") != std::string::npos) {
-            // Return only the answer text, not the "Final Answer:" prefix
+            context += "Thought: "     + thought     + "\n";
+            context += "Action: "      + action      + "\n";
+            context += "Observation: " + observation + "\n\n";
+
+        } else if (action.find("Final Answer") != std::string::npos) {
             auto pos = action.find("Final Answer");
-            std::string answer = action.substr(pos + 12); // skip "Final Answer"
-            // Trim leading colon + space
+            std::string answer = action.substr(pos + 12);
             while (!answer.empty() && (answer.front() == ':' || answer.front() == ' '))
                 answer = answer.substr(1);
             return answer.empty() ? action : answer;
+
+        } else {
+            std::cerr << "[WARN] Unrecognised action: " << action << "\n";
+            context += "Thought: " + thought + "\n";
+            context += "Action: "  + action  + "\n\n";
         }
     }
 
