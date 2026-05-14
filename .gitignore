@@ -19,3 +19,12 @@ src/db/test_db
 
 # Cmake
 cmake-build-debug/
+
+# Locally built libraries
+libs/redis++/
+
+# Model files (large downloads, ~5GB each)
+libs/llama.cpp/models/*.gguf
+
+# llama.cpp build artifacts
+libs/llama.cpp/build/

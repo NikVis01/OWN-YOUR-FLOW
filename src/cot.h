@@ -15,8 +15,8 @@ private:
                                     const std::string& slot1);
 
 public:
-    CoT(const std::string& model_path = "./libs/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_0.gguf",
-        double temp = 0.9);
+    CoT(const std::string& model_path = "./libs/llama.cpp/models/Qwen3-8B-Q4_K_M.gguf",
+        double temp = 0.7);
 
     // Parse the first Thought:/Action: pair from a model response
     void parseModelOutput(const std::string& output,

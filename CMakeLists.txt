@@ -19,7 +19,6 @@ add_executable(server
     src/cot.cpp
     src/parser.cpp
     src/filler.cpp
-        src/cot.cpp
 )
 
 # Include directories
